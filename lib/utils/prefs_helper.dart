@@ -8,6 +8,20 @@ class PrefsHelper {
   static const String _keyTutorialShown = 'tutorial_shown_v1';
   static const String _keyAppData = 'cached_app_data';
   static const String _keyMasterConfig = 'cached_master_config';
+  static const String _keyLastAppUniqueId = 'last_app_unique_id';
+
+  /// アプリのユニークIDが変わっていたらキャッシュを全クリアしてtrueを返す
+  static Future<bool> clearCacheIfAppChanged(String currentAppUniqueId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getString(_keyLastAppUniqueId);
+    if (stored != currentAppUniqueId) {
+      await prefs.remove(_keyAppData);
+      await prefs.remove(_keyMasterConfig);
+      await prefs.setString(_keyLastAppUniqueId, currentAppUniqueId);
+      return true;
+    }
+    return false;
+  }
 
   static Future<void> saveMasterConfigCache(String json) async {
     final prefs = await SharedPreferences.getInstance();

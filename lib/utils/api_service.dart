@@ -15,6 +15,10 @@ class ApiService {
   /// Priority: local cache → fetch from masterUrl.
   /// After returning cached value, silently re-fetches in background.
   Future<AppConfig> loadMasterConfig() async {
+    // アプリが切り替わっていたらキャッシュをクリア
+    final cleared = await PrefsHelper.clearCacheIfAppChanged(AppEnvConfig.appUniqueId);
+    if (cleared) debugPrint('ApiService: App changed — cache cleared');
+
     if (AppEnvConfig.masterUrl.isEmpty) {
       debugPrint('ApiService: No masterUrl set — template mode');
       return AppConfig.defaults();
