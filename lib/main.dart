@@ -2713,7 +2713,7 @@ class _QuizPageState extends State<QuizPage> {
           Expanded(
             flex: 5,
             child: Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.fromLTRB(22, 18, 22, 12),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2721,24 +2721,24 @@ class _QuizPageState extends State<QuizPage> {
                   const Text(
                     "Q.",
                     style: TextStyle(
-                      fontSize: 40,
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: Colors.blueGrey,
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
                   Expanded(
                     child: AutoSizeText(
                       quiz.question,
                       style: TextStyle(
-                        fontSize: hasImage ? 24 : 32,
-                        fontWeight: FontWeight.bold,
-                        height: 1.3,
+                        fontSize: hasImage ? 18 : 22,
+                        fontWeight: FontWeight.w600,
+                        height: 1.45,
                         color: Colors.black87,
                       ),
                       textAlign: TextAlign.left,
-                      minFontSize: 12,
+                      minFontSize: 11,
                       stepGranularity: 1,
                       overflow: TextOverflow.ellipsis,
                       maxLines: 20,
@@ -2748,9 +2748,9 @@ class _QuizPageState extends State<QuizPage> {
               ),
             ),
           ),
-          
+
           Padding(
-            padding: const EdgeInsets.only(left: 40.0, right: 40.0, bottom: 40.0),
+            padding: const EdgeInsets.only(left: 40.0, right: 40.0, bottom: 32.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
