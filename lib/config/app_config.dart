@@ -3,7 +3,7 @@ class AppEnvConfig {
   // NEW APP SETUP: Change these values when copying template
   // ============================================================
   static const String appUniqueId   = 'APP0001';
-  static const String appName       = 'SwipeDrill';
+  static const String appName       = 'Drillbit';
   static const String iosBannerId   = 'ca-app-pub-3331079517737737/7520491853';
   static const String iosInterId    = 'ca-app-pub-3331079517737737/2268165171';
   static const String iosPurchaseId = 'unlock_linux';
