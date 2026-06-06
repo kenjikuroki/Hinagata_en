@@ -7,19 +7,16 @@ import '../config/app_config.dart' show AppEnvConfig;
 import 'prefs_helper.dart';
 
 class ApiService {
-  static const String _driveBase =
-      'https://drive.google.com/uc?export=download&id=';
-
   // ─────────────────────────────────────────────────
-  // MASTER CONFIG (Google Drive)
+  // MASTER CONFIG (GAS or any HTTPS endpoint)
   // ─────────────────────────────────────────────────
 
   /// Load master config.
-  /// Priority: local cache → Drive fetch.
+  /// Priority: local cache → fetch from masterUrl.
   /// After returning cached value, silently re-fetches in background.
   Future<AppConfig> loadMasterConfig() async {
-    if (AppEnvConfig.masterDriveFileId.isEmpty) {
-      debugPrint('ApiService: No masterDriveFileId set — using defaults (template mode)');
+    if (AppEnvConfig.masterUrl.isEmpty) {
+      debugPrint('ApiService: No masterUrl set — template mode');
       return AppConfig.defaults();
     }
 
@@ -28,14 +25,14 @@ class ApiService {
     if (cached != null) {
       final config = _parseMasterConfig(cached);
       if (config != null) {
-        _refreshMasterInBackground(); // silent update for next launch
+        _refreshMasterInBackground();
         return config;
       }
     }
 
     // 2. No cache — fetch synchronously (first launch)
-    debugPrint('ApiService: No master cache, fetching from Drive...');
-    final config = await _fetchMasterFromDrive();
+    debugPrint('ApiService: No master cache, fetching...');
+    final config = await _fetchMaster();
     return config ?? AppConfig.defaults();
   }
 
@@ -49,9 +46,9 @@ class ApiService {
     }
   }
 
-  Future<AppConfig?> _fetchMasterFromDrive() async {
+  Future<AppConfig?> _fetchMaster() async {
     try {
-      final url = Uri.parse('$_driveBase${AppEnvConfig.masterDriveFileId}');
+      final url = Uri.parse(AppEnvConfig.masterUrl);
       final response = await http.get(url).timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) {
         final config = _parseMasterConfig(response.body);
@@ -68,7 +65,7 @@ class ApiService {
   }
 
   void _refreshMasterInBackground() {
-    _fetchMasterFromDrive(); // fire and forget
+    _fetchMaster();
   }
 
   // ─────────────────────────────────────────────────
@@ -99,7 +96,7 @@ class ApiService {
     }
 
     // 3. Fetch from GitHub
-    if (masterConfig.questionsGithubUrl.isNotEmpty) {
+    if (masterConfig.questionsUrl.isNotEmpty) {
       debugPrint('ApiService: Fetching questions from GitHub...');
       return await _fetchQuestionsFromGithub(masterConfig);
     }
@@ -110,7 +107,7 @@ class ApiService {
   /// Background refresh: re-fetch questions from GitHub and update cache.
   /// New data is used on next launch.
   void refreshInBackground(AppConfig masterConfig) {
-    if (masterConfig.questionsGithubUrl.isNotEmpty) {
+    if (masterConfig.questionsUrl.isNotEmpty) {
       _fetchAndCacheQuestions(masterConfig);
     }
   }
@@ -143,7 +140,7 @@ class ApiService {
 
   Future<AppData?> _fetchQuestionsFromGithub(AppConfig masterConfig) async {
     try {
-      final url = Uri.parse(masterConfig.questionsGithubUrl);
+      final url = Uri.parse(masterConfig.questionsUrl);
       final response = await http.get(url).timeout(const Duration(seconds: 20));
       if (response.statusCode == 200) {
         final data = _parseAppData(response.body, masterConfig);
@@ -161,7 +158,7 @@ class ApiService {
 
   Future<void> _fetchAndCacheQuestions(AppConfig masterConfig) async {
     try {
-      final url = Uri.parse(masterConfig.questionsGithubUrl);
+      final url = Uri.parse(masterConfig.questionsUrl);
       final response = await http.get(url).timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) {
         final data = _parseAppData(response.body, masterConfig);

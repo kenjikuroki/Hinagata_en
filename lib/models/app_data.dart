@@ -14,7 +14,7 @@ class AppConfig {
   final String premiumProductId;
   final String platformAppId;
   final String appId;
-  final String questionsGithubUrl;
+  final String questionsUrl;
   final String githubRepo;
 
   AppConfig({
@@ -31,7 +31,7 @@ class AppConfig {
     required this.premiumProductId,
     required this.platformAppId,
     required this.appId,
-    this.questionsGithubUrl = '',
+    this.questionsUrl = '',
     this.githubRepo = '',
   });
 
@@ -48,7 +48,7 @@ class AppConfig {
     premiumProductId: 'unlock_premium',
     platformAppId: '',
     appId: '',
-    questionsGithubUrl: '',
+    questionsUrl: '',
     githubRepo: '',
   );
 
@@ -93,7 +93,7 @@ class AppConfig {
       premiumProductId: premiumId.isNotEmpty ? premiumId : 'unlock_premium',
       platformAppId: platformId,
       appId: json['app_id']?.toString() ?? '',
-      questionsGithubUrl: json['questions_github_url']?.toString() ?? '',
+      questionsUrl: json['questions_url']?.toString() ?? '',
       githubRepo: json['github_repo']?.toString() ?? '',
     );
   }
