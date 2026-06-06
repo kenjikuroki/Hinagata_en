@@ -30,8 +30,26 @@ class ApiService {
 
     debugPrint('ApiService: No master cache, fetching...');
     final config = await _fetchMaster();
-    return config ?? AppConfig.defaults();
+    return config ?? _localConfig();
   }
+
+  /// ローカル固定値からAppConfigを生成（GAS不要・即時利用可能）
+  AppConfig _localConfig() => AppConfig(
+    saleEnabled: false,
+    adBannerId: AppEnvConfig.iosBannerId,
+    adInterstitialId: AppEnvConfig.iosInterId,
+    appTitle: AppEnvConfig.appName,
+    nextAppText: '',
+    nextAppUrl: '',
+    regularPrice: 390,
+    salePrice: 190,
+    nextAppEnabled: false,
+    premiumProductId: AppEnvConfig.iosPurchaseId,
+    platformAppId: '',
+    appId: AppEnvConfig.appUniqueId,
+    questionsUrl: AppEnvConfig.questionsUrl,
+    githubRepo: '',
+  );
 
   AppConfig? _parseMasterConfig(String jsonStr) {
     try {
