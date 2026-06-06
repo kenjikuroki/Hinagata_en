@@ -147,9 +147,9 @@ class AppData {
 
     for (var qJson in questionsList) {
       final quiz = Quiz.fromJson(qJson as Map<String, dynamic>);
-      String category = quiz.category;
+      String category = quiz.category.trim();
       if (category.isEmpty) category = 'その他';
-      
+
       if (!groupedQuestions.containsKey(category)) {
         groupedQuestions[category] = [];
         categoryOrder.add(category);

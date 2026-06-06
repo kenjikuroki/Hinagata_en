@@ -4,46 +4,99 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import '../models/app_data.dart';
 import 'prefs_helper.dart';
+import '../config/gas_config.dart';
 
 class ApiService {
-  static const String _baseUrl = 'https://script.google.com/macros/s/AKfycbxK_LaasUY5sgqXD7k_nrth8nXORYhlEHXo_hoYH1PECD6qG2q3arGyld5psRz8NiXT2A/exec';
-  Future<AppData?> loadAppData(String appId) async {
-    // 1. Try to fetch from network
+  static String get _baseUrl => GasConfig.baseUrl;
+
+  AppData? _parseUsableAppData(String jsonString, String appId) {
     try {
-      final url = Uri.parse('$_baseUrl?id=$appId');
-      final response = await http.get(url).timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200) {
-        final jsonString = response.body;
-        // Save to cache
-        await PrefsHelper.saveAppDataCache(jsonString);
-        return AppData.fromJson(json.decode(jsonString));
+      final decoded = json.decode(jsonString) as Map<String, dynamic>;
+      if (decoded.containsKey('error')) {
+        debugPrint('ApiService: API returned error for $appId: ${decoded['error']}');
+        return null;
       }
-    } catch (e) {
-      debugPrint('ApiService: Network error - $e');
-    }
 
-    // 2. If network fails, try to load from cache
+      final appData = AppData.fromJson(decoded);
+      if (appData.config.appId.isNotEmpty && appData.config.appId != appId) {
+        debugPrint(
+          'ApiService: App id mismatch. expected=$appId actual=${appData.config.appId}',
+        );
+        return null;
+      }
+      if (appData.questions.isEmpty) {
+        debugPrint('ApiService: Empty question set for $appId');
+        return null;
+      }
+      return appData;
+    } catch (e) {
+      debugPrint('ApiService: Parse error - $e');
+      return null;
+    }
+  }
+
+  // キャッシュ優先で即座に返す（asset→ネットワーク順にフォールバック）
+  Future<AppData?> loadFromCacheOrFallback(String appId) async {
+    // 1. Try cache
     final cachedJson = await PrefsHelper.getAppDataCache();
     if (cachedJson != null) {
-      try {
-        return AppData.fromJson(json.decode(cachedJson));
-      } catch (e) {
-        debugPrint('ApiService: Cache error - $e');
-      }
+      final data = _parseUsableAppData(cachedJson, appId);
+      if (data != null) return data;
+      debugPrint('ApiService: Cache invalid, trying asset fallback');
     }
 
-    // 3. Fallback to asset if cache is also null
-    if (kDebugMode) {
-      debugPrint('ApiService: Using fallback asset data for $appId');
+    // 2. Try bundled asset (fallback_data.json or initial_data.json)
+    for (final path in ['assets/fallback_data.json', 'assets/initial_data.json']) {
+      try {
+        final assetString = await rootBundle.loadString(path);
+        final data = _parseUsableAppData(assetString, appId);
+        if (data != null) {
+          if (kDebugMode) debugPrint('ApiService: Loaded from asset: $path');
+          return data;
+        }
+      } catch (_) {}
     }
+
+    // 3. Last resort: synchronous network fetch
+    debugPrint('ApiService: No cache/asset available, fetching from network for $appId');
     try {
-      final fallbackString = await rootBundle.loadString('assets/fallback_data.json');
-      return AppData.fromJson(json.decode(fallbackString));
+      final url = Uri.parse('$_baseUrl?id=$appId');
+      final response = await http.get(url).timeout(const Duration(seconds: 20));
+      if (response.statusCode == 200) {
+        final data = _parseUsableAppData(response.body, appId);
+        if (data != null) {
+          await PrefsHelper.saveAppDataCache(response.body);
+          debugPrint('ApiService: Network fetch successful for $appId');
+          return data;
+        }
+      }
     } catch (e) {
-      debugPrint('ApiService: Fallback asset error - $e');
+      debugPrint('ApiService: Network fetch failed - $e');
     }
 
     return null;
+  }
+
+  // バックグラウンドでGASから取得しキャッシュを更新（次回起動に反映）
+  void refreshInBackground(String appId) {
+    _fetchAndCache(appId);
+  }
+
+  Future<void> _fetchAndCache(String appId) async {
+    try {
+      final url = Uri.parse('$_baseUrl?id=$appId');
+      final response = await http.get(url).timeout(const Duration(seconds: 15));
+      if (response.statusCode == 200) {
+        final data = _parseUsableAppData(response.body, appId);
+        if (data != null) {
+          await PrefsHelper.saveAppDataCache(response.body);
+          debugPrint('ApiService: Background refresh successful');
+        } else {
+          debugPrint('ApiService: Background refresh returned invalid data, cache not updated');
+        }
+      }
+    } catch (e) {
+      debugPrint('ApiService: Background refresh failed - $e');
+    }
   }
 }

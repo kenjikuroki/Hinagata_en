@@ -103,6 +103,8 @@ class PurchaseManager {
     }
   }
 
+  Future<void> silentUnlock() => _unlockPremium();
+
   Future<void> _unlockPremium() async {
     isPremium.value = true;
     final prefs = await SharedPreferences.getInstance();
