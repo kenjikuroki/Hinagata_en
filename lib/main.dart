@@ -3593,7 +3593,7 @@ class _ResultPageState extends State<ResultPage> {
               total: widget.total,
               message: widget.score == widget.total
                   ? 'PERFECT! 🎉'
-                  : widget.score >= 8
+                  : widget.score / widget.total >= 0.8
                       ? 'Great job! Keep it up!'
                       : 'Keep studying!',
               collapseProgress: _collapseProgress,
