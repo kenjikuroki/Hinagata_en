@@ -8,23 +8,17 @@ import 'prefs_helper.dart';
 
 class ApiService {
   // ─────────────────────────────────────────────────
-  // MASTER CONFIG (GAS or any HTTPS endpoint)
+  // MASTER CONFIG
   // ─────────────────────────────────────────────────
 
-  /// Load master config.
-  /// Priority: local cache → fetch from masterUrl.
-  /// After returning cached value, silently re-fetches in background.
   Future<AppConfig> loadMasterConfig() async {
-    // アプリが切り替わっていたらキャッシュをクリア
     final cleared = await PrefsHelper.clearCacheIfAppChanged(AppEnvConfig.appUniqueId);
     if (cleared) debugPrint('ApiService: App changed — cache cleared');
 
     if (AppEnvConfig.masterUrl.isEmpty) {
-      debugPrint('ApiService: No masterUrl set — template mode');
       return AppConfig.defaults();
     }
 
-    // 1. Return cached immediately if available
     final cached = await PrefsHelper.getMasterConfigCache();
     if (cached != null) {
       final config = _parseMasterConfig(cached);
@@ -34,7 +28,6 @@ class ApiService {
       }
     }
 
-    // 2. No cache — fetch synchronously (first launch)
     debugPrint('ApiService: No master cache, fetching...');
     final config = await _fetchMaster();
     return config ?? AppConfig.defaults();
@@ -43,7 +36,54 @@ class ApiService {
   AppConfig? _parseMasterConfig(String jsonStr) {
     try {
       final decoded = json.decode(jsonStr) as Map<String, dynamic>;
-      return AppConfig.fromJson(decoded);
+
+      // 新フォーマット: config fields directly
+      if (decoded.containsKey('app_id') || decoded.containsKey('app_name')) {
+        return AppConfig.fromJson(decoded);
+      }
+
+      // 旧フォーマット: { question_bundle, spreadsheet_data }
+      if (decoded.containsKey('spreadsheet_data')) {
+        final spreadsheet = decoded['spreadsheet_data'] as Map<String, dynamic>;
+        final masterRows = spreadsheet['master'] as List<dynamic>?;
+        if (masterRows != null && masterRows.length >= 3) {
+          final fieldNames = (masterRows[1] as List).map((e) => e.toString()).toList();
+          final idCol = fieldNames.indexOf('app_unique_id');
+          List<dynamic>? dataRow;
+          for (int i = 2; i < masterRows.length; i++) {
+            final row = masterRows[i] as List;
+            if (idCol >= 0 && row[idCol].toString() == AppEnvConfig.appUniqueId) {
+              dataRow = row;
+              break;
+            }
+          }
+          dataRow ??= masterRows[2] as List;
+          final configMap = <String, dynamic>{};
+          for (int i = 0; i < fieldNames.length && i < dataRow.length; i++) {
+            configMap[fieldNames[i]] = dataRow[i];
+          }
+          // フィールド名マッピング（スプレッドシート列名→AppConfig JSONキー）
+          final mapped = {
+            'app_id':              configMap['app_id'],
+            'app_name':            configMap['app_name'],
+            'ios_ad_banner':       configMap['ios_banner_ad_id'],
+            'ios_ad_inter':        configMap['ios_interstitial_ad_id'],
+            'ios_premium_id':      configMap['ios_purchase_id'],
+            'android_ad_banner':   configMap['android_banner_ad_id'],
+            'android_ad_inter':    configMap['android_interstitial_ad_id'],
+            'android_premium_id':  configMap['android_purchase_id'],
+            // 問題GASのURLをquestionsUrlとして設定
+            'questions_url':       AppEnvConfig.questionsUrl,
+            'sale_enabled':        false,
+            'regular_price':       390,
+            'sale_price':          190,
+            'next_app_enabled':    false,
+          };
+          return AppConfig.fromJson(mapped);
+        }
+      }
+
+      return null;
     } catch (e) {
       debugPrint('ApiService: Master config parse error — $e');
       return null;
@@ -73,46 +113,47 @@ class ApiService {
   }
 
   // ─────────────────────────────────────────────────
-  // QUESTIONS (GitHub raw JSON)
+  // QUESTIONS
   // ─────────────────────────────────────────────────
 
-  /// Load questions.
-  /// Priority: local cache → bundled asset → GitHub fetch.
   Future<AppData?> loadFromCacheOrFallback(AppConfig masterConfig) async {
-    // 1. Try questions cache
+    // 1. キャッシュ
     final cachedJson = await PrefsHelper.getAppDataCache();
     if (cachedJson != null) {
       final data = _parseAppData(cachedJson, masterConfig);
       if (data != null) return data;
-      debugPrint('ApiService: Questions cache invalid, trying fallback');
     }
 
-    // 2. Try bundled asset
+    // 2. バンドルアセット
     for (final path in ['assets/fallback_data.json', 'assets/initial_data.json']) {
       try {
         final assetStr = await rootBundle.loadString(path);
         final data = _parseAppData(assetStr, masterConfig);
         if (data != null) {
-          debugPrint('ApiService: Loaded questions from asset: $path');
+          debugPrint('ApiService: Loaded from asset: $path');
           return data;
         }
       } catch (_) {}
     }
 
-    // 3. Fetch from GitHub
-    if (masterConfig.questionsUrl.isNotEmpty) {
-      debugPrint('ApiService: Fetching questions from GitHub...');
-      return await _fetchQuestionsFromGithub(masterConfig);
+    // 3. GASから取得
+    final url = masterConfig.questionsUrl.isNotEmpty
+        ? masterConfig.questionsUrl
+        : AppEnvConfig.questionsUrl;
+    if (url.isNotEmpty) {
+      return await _fetchQuestions(url, masterConfig);
     }
 
     return null;
   }
 
-  /// Background refresh: re-fetch questions from GitHub and update cache.
-  /// New data is used on next launch.
+  /// バックグラウンドで問題を更新（次回起動に反映）
   void refreshInBackground(AppConfig masterConfig) {
-    if (masterConfig.questionsUrl.isNotEmpty) {
-      _fetchAndCacheQuestions(masterConfig);
+    final url = masterConfig.questionsUrl.isNotEmpty
+        ? masterConfig.questionsUrl
+        : AppEnvConfig.questionsUrl;
+    if (url.isNotEmpty) {
+      _fetchAndCache(url, masterConfig);
     }
   }
 
@@ -121,18 +162,25 @@ class ApiService {
       final decoded = json.decode(jsonStr) as Map<String, dynamic>;
       if (decoded.containsKey('error')) return null;
 
-      // Full format (has 'config' key) — backward compat with old GAS format
-      if (decoded.containsKey('config')) {
-        final data = AppData.fromJson(decoded);
-        if (data.questions.isEmpty) return null;
-        return data;
+      // 旧フォーマット: { question_bundle: {..., questions: [...]} }
+      if (decoded.containsKey('question_bundle')) {
+        final bundle = decoded['question_bundle'] as Map<String, dynamic>;
+        if (bundle.containsKey('questions')) {
+          final data = AppData.fromQuestionsJson(bundle, masterConfig);
+          if (data.questions.isNotEmpty) return data;
+        }
       }
 
-      // Questions-only format (GitHub)
+      // 旧フォーマット: { config, questions }
+      if (decoded.containsKey('config')) {
+        final data = AppData.fromJson(decoded);
+        if (data.questions.isNotEmpty) return data;
+      }
+
+      // 新フォーマット: { questions: [...] }
       if (decoded.containsKey('questions')) {
         final data = AppData.fromQuestionsJson(decoded, masterConfig);
-        if (data.questions.isEmpty) return null;
-        return data;
+        if (data.questions.isNotEmpty) return data;
       }
 
       return null;
@@ -142,33 +190,31 @@ class ApiService {
     }
   }
 
-  Future<AppData?> _fetchQuestionsFromGithub(AppConfig masterConfig) async {
+  Future<AppData?> _fetchQuestions(String urlStr, AppConfig masterConfig) async {
     try {
-      final url = Uri.parse(masterConfig.questionsUrl);
-      final response = await http.get(url).timeout(const Duration(seconds: 20));
+      final response = await http.get(Uri.parse(urlStr)).timeout(const Duration(seconds: 20));
       if (response.statusCode == 200) {
         final data = _parseAppData(response.body, masterConfig);
         if (data != null) {
           await PrefsHelper.saveAppDataCache(response.body);
-          debugPrint('ApiService: Questions fetched from GitHub');
+          debugPrint('ApiService: Questions fetched from GAS');
           return data;
         }
       }
     } catch (e) {
-      debugPrint('ApiService: GitHub fetch failed — $e');
+      debugPrint('ApiService: Questions fetch failed — $e');
     }
     return null;
   }
 
-  Future<void> _fetchAndCacheQuestions(AppConfig masterConfig) async {
+  Future<void> _fetchAndCache(String urlStr, AppConfig masterConfig) async {
     try {
-      final url = Uri.parse(masterConfig.questionsUrl);
-      final response = await http.get(url).timeout(const Duration(seconds: 15));
+      final response = await http.get(Uri.parse(urlStr)).timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) {
         final data = _parseAppData(response.body, masterConfig);
         if (data != null) {
           await PrefsHelper.saveAppDataCache(response.body);
-          debugPrint('ApiService: Background questions refresh successful');
+          debugPrint('ApiService: Background refresh successful');
         }
       }
     } catch (e) {

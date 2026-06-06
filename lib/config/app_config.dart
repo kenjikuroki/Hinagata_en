@@ -10,6 +10,10 @@ class AppEnvConfig {
   /// App unique ID — スプレッドシートの app_unique_id と一致させる
   static const String appUniqueId = 'APP0001';
 
+  /// 問題GAS URL（共通 — 変更不要）
+  static const String questionsUrl =
+      'https://script.google.com/macros/s/AKfycbzhz1_l8Kk-sHQj025uhoR5EJLVBb1UeIozSbvryu1qF7HoN3eG320O57-M9VjObdSCLg/exec';
+
   /// 結合URL（変更不要）
   static String get masterUrl => '$_masterGasUrl?id=$appUniqueId';
 }
