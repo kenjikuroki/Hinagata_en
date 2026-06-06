@@ -1,11 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'ad_manager.dart';
 import 'prefs_helper.dart';
 import '../models/app_data.dart';
-import 'dart:convert';
+import '../config/app_config.dart' show AppEnvConfig;
 
 class PurchaseManager {
   static final PurchaseManager instance = PurchaseManager._internal();
@@ -17,9 +18,9 @@ class PurchaseManager {
   String get productId {
     if (kIsWeb) return _productId; // Fallback
     if (defaultTargetPlatform == TargetPlatform.iOS) {
-      return 'unlock_unkou';
+      return AppEnvConfig.iosPurchaseId;
     } else if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'unlock_premium';
+      return AppEnvConfig.iosPurchaseId;
     }
     return _productId;
   }

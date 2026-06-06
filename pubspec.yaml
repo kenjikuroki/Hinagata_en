@@ -1,4 +1,4 @@
-name: uncou_swipe
+name: hinagata_en
 description: "スキマ時間でサクサク合格！一問一答"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -73,16 +73,16 @@ flutter_launcher_icons:
   min_sdk_android: 21
   web:
     generate: true
-    image_path: "assets/icon/unkou_icon.png"
+    image_path: "assets/icon/app_icon.png"
     background_color: "#hex_code"
     theme_color: "#hex_code"
   windows:
     generate: true
-    image_path: "assets/icon/unkou_icon.png"
+    image_path: "assets/icon/app_icon.png"
     icon_size: 48 # min:48, max:256, default: 48
   macos:
     generate: true
-    image_path: "assets/icon/unkou_icon.png"
+    image_path: "assets/icon/app_icon.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

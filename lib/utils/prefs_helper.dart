@@ -151,7 +151,7 @@ class PrefsHelper {
   }
 
   // ---- Bookmarks ----
-  static const String _bookmarkKey = 'bookmark_questions_unkou';
+  static const String _bookmarkKey = 'bookmark_questions';
 
   static Future<void> addBookmarkedQuestions(List<String> questions) async {
     if (questions.isEmpty) return;
@@ -179,12 +179,12 @@ class PrefsHelper {
   }
 
   // ---- Learning Stats ----
-  static const String _keyTotalAnswered = 'total_answered_unkou';
-  static const String _keyBestStreak = 'best_streak_unkou';
-  static const String _keyDailyAnswered = 'daily_answered_unkou';
-  static const String _keyDailyBestStreak = 'daily_best_streak_unkou';
-  static const String _keyCatAnsweredPrefix = 'cat_answered_unkou_';
-  static const String _keyCatCorrectPrefix = 'cat_correct_unkou_';
+  static const String _keyTotalAnswered = 'total_answered';
+  static const String _keyBestStreak = 'best_streak';
+  static const String _keyDailyAnswered = 'daily_answered';
+  static const String _keyDailyBestStreak = 'daily_best_streak';
+  static const String _keyCatAnsweredPrefix = 'cat_answered_';
+  static const String _keyCatCorrectPrefix = 'cat_correct_';
 
   static Future<void> addAnsweredCount(int count) async {
     if (count <= 0) return;

@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In ja, this message translates to:
-  /// **'運行管理者 貨物'**
+  /// **'Study App'**
   String get appTitle;
 
   /// No description provided for @quizSubtitle.
