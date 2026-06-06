@@ -127,9 +127,9 @@ class Quiz {
       finalImg = img.toString();
     }
 
-    // Handle is_correct as "〇" / "×" or bool or int
+    // Handle is_correct / answer as bool, "〇"/"×", or int
     bool correctValue = false;
-    dynamic rawCorrect = json['is_correct'] ?? json['isCorrect'];
+    dynamic rawCorrect = json['answer'] ?? json['is_correct'] ?? json['isCorrect'];
     if (rawCorrect == '〇' || rawCorrect == '○') {
       correctValue = true;
     } else if (rawCorrect == '×' || rawCorrect == 'x' || rawCorrect == 'X') {
@@ -140,12 +140,20 @@ class Quiz {
       correctValue = rawCorrect == 1;
     }
 
+    // Convert snake_case category to display name (e.g. basic_commands → Basic Commands)
+    String rawCategory = json['category'] as String? ?? '';
+    final category = rawCategory.isEmpty
+        ? 'General'
+        : rawCategory.replaceAll('_', ' ').split(' ')
+            .map((w) => w.isEmpty ? '' : '${w[0].toUpperCase()}${w.substring(1)}')
+            .join(' ');
+
     return Quiz(
       question: (json['question'] as String? ?? '').replaceAll('\n', ''),
       isCorrect: correctValue,
       explanation: json['explanation'] as String? ?? '',
       imagePath: finalImg,
-      category: json['category'] as String? ?? '',
+      category: category,
     );
   }
 }
