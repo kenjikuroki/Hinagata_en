@@ -7,6 +7,22 @@ class PrefsHelper {
   static const String _keyOfferShownV1 = 'special_offer_shown_v1';
   static const String _keyTutorialShown = 'tutorial_shown_v1';
   static const String _keyAppData = 'cached_app_data';
+  static const String _keyMasterConfig = 'cached_master_config';
+
+  static Future<void> saveMasterConfigCache(String json) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyMasterConfig, json);
+  }
+
+  static Future<String?> getMasterConfigCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyMasterConfig);
+  }
+
+  static Future<void> clearMasterConfigCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyMasterConfig);
+  }
 
   static Future<void> saveAppDataCache(String json) async {
     final prefs = await SharedPreferences.getInstance();

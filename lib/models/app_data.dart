@@ -14,6 +14,8 @@ class AppConfig {
   final String premiumProductId;
   final String platformAppId;
   final String appId;
+  final String questionsGithubUrl;
+  final String githubRepo;
 
   AppConfig({
     required this.saleEnabled,
@@ -29,7 +31,26 @@ class AppConfig {
     required this.premiumProductId,
     required this.platformAppId,
     required this.appId,
+    this.questionsGithubUrl = '',
+    this.githubRepo = '',
   });
+
+  factory AppConfig.defaults() => AppConfig(
+    saleEnabled: false,
+    adBannerId: '',
+    adInterstitialId: '',
+    appTitle: 'Study App',
+    nextAppText: '',
+    nextAppUrl: '',
+    regularPrice: 390,
+    salePrice: 190,
+    nextAppEnabled: false,
+    premiumProductId: 'unlock_premium',
+    platformAppId: '',
+    appId: '',
+    questionsGithubUrl: '',
+    githubRepo: '',
+  );
 
   factory AppConfig.fromJson(Map<String, dynamic> json) {
     DateTime? endDate;
@@ -69,9 +90,11 @@ class AppConfig {
       regularPrice: int.tryParse(json['regular_price']?.toString() ?? '') ?? 390,
       salePrice: int.tryParse(json['sale_price']?.toString() ?? '') ?? 190,
       nextAppEnabled: json['next_app_enabled'] == true || json['next_app_enabled'] == 1 || json['next_app_enabled']?.toString() == '1',
-      premiumProductId: premiumId.isNotEmpty ? premiumId : 'unlock_joukaso',
+      premiumProductId: premiumId.isNotEmpty ? premiumId : 'unlock_premium',
       platformAppId: platformId,
       appId: json['app_id']?.toString() ?? '',
+      questionsGithubUrl: json['questions_github_url']?.toString() ?? '',
+      githubRepo: json['github_repo']?.toString() ?? '',
     );
   }
 
@@ -141,26 +164,39 @@ class AppData {
   factory AppData.fromJson(Map<String, dynamic> json) {
     final configMap = json['config'] as Map<String, dynamic>? ?? {};
     final questionsList = json['questions'] as List<dynamic>? ?? [];
-
-    Map<String, List<Quiz>> groupedQuestions = {};
-    List<String> categoryOrder = [];
-
-    for (var qJson in questionsList) {
-      final quiz = Quiz.fromJson(qJson as Map<String, dynamic>);
-      String category = quiz.category.trim();
-      if (category.isEmpty) category = 'その他';
-
-      if (!groupedQuestions.containsKey(category)) {
-        groupedQuestions[category] = [];
-        categoryOrder.add(category);
-      }
-      groupedQuestions[category]!.add(quiz);
-    }
-
+    final (grouped, order) = _parseQuestions(questionsList);
     return AppData(
       config: AppConfig.fromJson(configMap),
-      questions: groupedQuestions,
-      categoryOrder: categoryOrder,
+      questions: grouped,
+      categoryOrder: order,
     );
+  }
+
+  /// Build AppData from a questions-only JSON (GitHub) + separately loaded master config.
+  factory AppData.fromQuestionsJson(
+      Map<String, dynamic> json, AppConfig masterConfig) {
+    final questionsList = json['questions'] as List<dynamic>? ?? [];
+    final (grouped, order) = _parseQuestions(questionsList);
+    return AppData(
+      config: masterConfig,
+      questions: grouped,
+      categoryOrder: order,
+    );
+  }
+
+  static (Map<String, List<Quiz>>, List<String>) _parseQuestions(
+      List<dynamic> questionsList) {
+    final Map<String, List<Quiz>> grouped = {};
+    final List<String> order = [];
+    for (var qJson in questionsList) {
+      final quiz = Quiz.fromJson(qJson as Map<String, dynamic>);
+      final category = quiz.category.trim().isEmpty ? 'Other' : quiz.category.trim();
+      if (!grouped.containsKey(category)) {
+        grouped[category] = [];
+        order.add(category);
+      }
+      grouped[category]!.add(quiz);
+    }
+    return (grouped, order);
   }
 }

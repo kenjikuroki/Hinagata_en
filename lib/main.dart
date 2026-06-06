@@ -141,12 +141,15 @@ class _HomePageState extends State<HomePage> with RouteAware {
   }
   
   Future<void> _initializeApp() async {
-    // データ移行（ローカルのみ、高速）
     await MigrationHelper.performMigration();
 
-    // キャッシュまたはバンドルassetから即座に読み込む（ネットワーク不使用）
     final apiService = ApiService();
-    _appData = await apiService.loadFromCacheOrFallback('unkou');
+
+    // 1. Master config (Drive) — cached permanently
+    final masterConfig = await apiService.loadMasterConfig();
+
+    // 2. Questions (GitHub) — cache + background refresh
+    _appData = await apiService.loadFromCacheOrFallback(masterConfig);
 
     if (_appData != null) {
       AdManager.instance.setAdUnitIds(
@@ -162,10 +165,10 @@ class _HomePageState extends State<HomePage> with RouteAware {
       });
     }
 
-    // UI表示後に権限・広告・バックグラウンド更新を実行
-    _initPostDisplay(apiService);
+    _initPostDisplay(apiService, masterConfig);
   }
-  Future<void> _initPostDisplay(ApiService apiService) async {
+
+  Future<void> _initPostDisplay(ApiService apiService, AppConfig masterConfig) async {
     // ATT権限リクエスト
     final status = await AppTrackingTransparency.requestTrackingAuthorization();
     debugPrint("ATT Status: $status");
@@ -177,8 +180,8 @@ class _HomePageState extends State<HomePage> with RouteAware {
     await MobileAds.instance.initialize();
     AdManager.instance.preloadAd('home');
 
-    // バックグラウンドでGASから最新データを取得しキャッシュを更新（次回起動に反映）
-    apiService.refreshInBackground('unkou');
+    // Background refresh questions from GitHub (next launch picks up changes)
+    apiService.refreshInBackground(masterConfig);
 
     // 通知スケジュール更新
     final examDateForNotif = await PrefsHelper.getExamDate();
