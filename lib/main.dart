@@ -2664,13 +2664,13 @@ class _QuizPageState extends State<QuizPage> {
   Widget _buildCard(Quiz quiz) {
     bool hasImage = quiz.imagePath != null;
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          minWidth: double.infinity,
-          maxWidth: ResponsiveHelper.respCardWidth(context) ?? double.infinity,
-        ),
-        child: Container(
+    return SizedBox.expand(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: ResponsiveHelper.respCardWidth(context) ?? double.infinity,
+          ),
+          child: Container(
       margin: const EdgeInsets.all(20),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
@@ -2779,8 +2779,9 @@ class _QuizPageState extends State<QuizPage> {
         ],
       ),
      ),
-    ),
-   );
+        ),
+      ),
+    );
   }
 
 }
