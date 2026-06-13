@@ -16,6 +16,7 @@ class AppConfig {
   final String appId;
   final String questionsUrl;
   final String githubRepo;
+  final String feedbackUrl;
 
   AppConfig({
     required this.saleEnabled,
@@ -33,6 +34,7 @@ class AppConfig {
     required this.appId,
     this.questionsUrl = '',
     this.githubRepo = '',
+    this.feedbackUrl = '',
   });
 
   factory AppConfig.defaults() => AppConfig(
@@ -50,11 +52,13 @@ class AppConfig {
     appId: '',
     questionsUrl: '',
     githubRepo: '',
+    feedbackUrl: '',
   );
 
   factory AppConfig.fromJson(Map<String, dynamic> json) {
     DateTime? endDate;
-    if (json['sale_end_date'] != null && json['sale_end_date'].toString().isNotEmpty) {
+    if (json['sale_end_date'] != null &&
+        json['sale_end_date'].toString().isNotEmpty) {
       endDate = DateTime.tryParse(json['sale_end_date'].toString());
     }
 
@@ -64,7 +68,7 @@ class AppConfig {
     String nextUrl = '';
     String premiumId = '';
     String platformId = '';
-    
+
     if (Platform.isIOS) {
       banner = json['ios_ad_banner']?.toString() ?? '';
       inter = json['ios_ad_inter']?.toString() ?? '';
@@ -72,29 +76,49 @@ class AppConfig {
       premiumId = json['ios_premium_id']?.toString() ?? '';
       platformId = json['ios_id']?.toString() ?? '';
     } else {
-      banner = (json['android_ad_banner'] ?? json['andoroid_ad_banner'])?.toString() ?? '';
-      inter = (json['android_ad_inter'] ?? json['andoroid_ad_inter'])?.toString() ?? '';
-      nextUrl = (json['android_next_app_url'] ?? json['andoroid_next_app_url'])?.toString() ?? '';
-      premiumId = (json['android_premium_id'] ?? json['andoroid_premium_id'])?.toString() ?? '';
-      platformId = (json['android_id'] ?? json['andoroid_id'])?.toString() ?? '';
+      banner =
+          (json['android_ad_banner'] ?? json['andoroid_ad_banner'])
+              ?.toString() ??
+          '';
+      inter =
+          (json['android_ad_inter'] ?? json['andoroid_ad_inter'])?.toString() ??
+          '';
+      nextUrl =
+          (json['android_next_app_url'] ?? json['andoroid_next_app_url'])
+              ?.toString() ??
+          '';
+      premiumId =
+          (json['android_premium_id'] ?? json['andoroid_premium_id'])
+              ?.toString() ??
+          '';
+      platformId =
+          (json['android_id'] ?? json['andoroid_id'])?.toString() ?? '';
     }
 
     return AppConfig(
-      saleEnabled: json['sale_enabled'] == true || json['sale_enabled'] == 1 || json['sale_enabled']?.toString() == '1',
+      saleEnabled:
+          json['sale_enabled'] == true ||
+          json['sale_enabled'] == 1 ||
+          json['sale_enabled']?.toString() == '1',
       saleEndDate: endDate,
       adBannerId: banner,
       adInterstitialId: inter,
       appTitle: json['app_name']?.toString() ?? '',
       nextAppText: json['next_app_text']?.toString() ?? '',
       nextAppUrl: nextUrl,
-      regularPrice: int.tryParse(json['regular_price']?.toString() ?? '') ?? 390,
+      regularPrice:
+          int.tryParse(json['regular_price']?.toString() ?? '') ?? 390,
       salePrice: int.tryParse(json['sale_price']?.toString() ?? '') ?? 190,
-      nextAppEnabled: json['next_app_enabled'] == true || json['next_app_enabled'] == 1 || json['next_app_enabled']?.toString() == '1',
+      nextAppEnabled:
+          json['next_app_enabled'] == true ||
+          json['next_app_enabled'] == 1 ||
+          json['next_app_enabled']?.toString() == '1',
       premiumProductId: premiumId.isNotEmpty ? premiumId : 'unlock_premium',
       platformAppId: platformId,
       appId: json['app_id']?.toString() ?? '',
       questionsUrl: json['questions_url']?.toString() ?? '',
       githubRepo: json['github_repo']?.toString() ?? '',
+      feedbackUrl: json['feedback_url']?.toString() ?? '',
     );
   }
 
@@ -129,7 +153,8 @@ class Quiz {
 
     // Handle is_correct / answer as bool, "〇"/"×", or int
     bool correctValue = false;
-    dynamic rawCorrect = json['answer'] ?? json['is_correct'] ?? json['isCorrect'];
+    dynamic rawCorrect =
+        json['answer'] ?? json['is_correct'] ?? json['isCorrect'];
     if (rawCorrect == '〇' || rawCorrect == '○') {
       correctValue = true;
     } else if (rawCorrect == '×' || rawCorrect == 'x' || rawCorrect == 'X') {
@@ -144,9 +169,14 @@ class Quiz {
     String rawCategory = json['category'] as String? ?? '';
     final category = rawCategory.isEmpty
         ? 'General'
-        : rawCategory.replaceAll('_', ' ').split(' ')
-            .map((w) => w.isEmpty ? '' : '${w[0].toUpperCase()}${w.substring(1)}')
-            .join(' ');
+        : rawCategory
+              .replaceAll('_', ' ')
+              .split(' ')
+              .map(
+                (w) =>
+                    w.isEmpty ? '' : '${w[0].toUpperCase()}${w.substring(1)}',
+              )
+              .join(' ');
 
     return Quiz(
       question: (json['question'] as String? ?? '').replaceAll('\n', ''),
@@ -182,7 +212,9 @@ class AppData {
 
   /// Build AppData from a questions-only JSON (GitHub) + separately loaded master config.
   factory AppData.fromQuestionsJson(
-      Map<String, dynamic> json, AppConfig masterConfig) {
+    Map<String, dynamic> json,
+    AppConfig masterConfig,
+  ) {
     final questionsList = json['questions'] as List<dynamic>? ?? [];
     final (grouped, order) = _parseQuestions(questionsList);
     return AppData(
@@ -193,12 +225,15 @@ class AppData {
   }
 
   static (Map<String, List<Quiz>>, List<String>) _parseQuestions(
-      List<dynamic> questionsList) {
+    List<dynamic> questionsList,
+  ) {
     final Map<String, List<Quiz>> grouped = {};
     final List<String> order = [];
     for (var qJson in questionsList) {
       final quiz = Quiz.fromJson(qJson as Map<String, dynamic>);
-      final category = quiz.category.trim().isEmpty ? 'Other' : quiz.category.trim();
+      final category = quiz.category.trim().isEmpty
+          ? 'Other'
+          : quiz.category.trim();
       if (!grouped.containsKey(category)) {
         grouped[category] = [];
         order.add(category);

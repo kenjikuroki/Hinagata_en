@@ -33,7 +33,6 @@ class NotificationService {
   }
 
   static Future<void> scheduleDailyReminder({
-    DateTime? examDate,
     int streak = 0,
     bool enabled = true,
     int hour = 20,
@@ -41,14 +40,8 @@ class NotificationService {
     await _plugin.cancel(_notifId);
     if (!enabled) return;
 
-    final daysLeft = examDate != null
-        ? examDate.difference(DateTime.now()).inDays
-        : null;
-
     String body;
-    if (daysLeft != null && daysLeft >= 0 && daysLeft <= 60) {
-      body = '$daysLeft days until your exam! Keep up the daily practice.';
-    } else if (streak > 1) {
+    if (streak > 1) {
       body = '$streak-day streak! Keep it going today.';
     } else {
       body = 'A quick quiz a day keeps failure away!';

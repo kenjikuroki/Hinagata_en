@@ -55,7 +55,7 @@ class PrefsHelper {
     await prefs.setInt(_keyAdCounter, current);
     return (current % 2 == 0);
   }
-  
+
   static Future<void> saveHighScore(String categoryKey, int score) async {
     final prefs = await SharedPreferences.getInstance();
     final currentHigh = prefs.getInt(categoryKey) ?? 0;
@@ -73,7 +73,7 @@ class PrefsHelper {
     if (questions.isEmpty) return;
     final prefs = await SharedPreferences.getInstance();
     final List<String> current = prefs.getStringList(_keyWeakQuestions) ?? [];
-    
+
     bool changed = false;
     for (final q in questions) {
       if (!current.contains(q)) {
@@ -81,7 +81,7 @@ class PrefsHelper {
         changed = true;
       }
     }
-    
+
     if (changed) {
       await prefs.setStringList(_keyWeakQuestions, current);
     }
@@ -91,14 +91,14 @@ class PrefsHelper {
     if (questions.isEmpty) return;
     final prefs = await SharedPreferences.getInstance();
     final List<String> current = prefs.getStringList(_keyWeakQuestions) ?? [];
-    
+
     bool changed = false;
     for (final q in questions) {
-       if (current.remove(q)) {
-         changed = true;
-       }
+      if (current.remove(q)) {
+        changed = true;
+      }
     }
-    
+
     if (changed) {
       await prefs.setStringList(_keyWeakQuestions, current);
     }
@@ -130,6 +130,7 @@ class PrefsHelper {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyTutorialShown, true);
   }
+
   static const String _keyQuizCompletionCount = 'quiz_completion_count';
 
   static Future<int> incrementQuizCompletionCount() async {
@@ -159,7 +160,10 @@ class PrefsHelper {
     final current = prefs.getStringList(_bookmarkKey) ?? <String>[];
     bool changed = false;
     for (final q in questions) {
-      if (!current.contains(q)) { current.add(q); changed = true; }
+      if (!current.contains(q)) {
+        current.add(q);
+        changed = true;
+      }
     }
     if (changed) await prefs.setStringList(_bookmarkKey, current);
   }
@@ -169,7 +173,9 @@ class PrefsHelper {
     final prefs = await SharedPreferences.getInstance();
     final current = prefs.getStringList(_bookmarkKey) ?? <String>[];
     bool changed = false;
-    for (final q in questions) { if (current.remove(q)) changed = true; }
+    for (final q in questions) {
+      if (current.remove(q)) changed = true;
+    }
     if (changed) await prefs.setStringList(_bookmarkKey, current);
   }
 
@@ -210,7 +216,10 @@ class PrefsHelper {
     return prefs.getInt(_keyBestStreak) ?? 0;
   }
 
-  static Future<void> addCategoryAnsweredCount(String categoryKey, int count) async {
+  static Future<void> addCategoryAnsweredCount(
+    String categoryKey,
+    int count,
+  ) async {
     if (count <= 0) return;
     final prefs = await SharedPreferences.getInstance();
     final key = '$_keyCatAnsweredPrefix$categoryKey';
@@ -218,7 +227,10 @@ class PrefsHelper {
     await prefs.setInt(key, current + count);
   }
 
-  static Future<void> addCategoryCorrectCount(String categoryKey, int count) async {
+  static Future<void> addCategoryCorrectCount(
+    String categoryKey,
+    int count,
+  ) async {
     if (count <= 0) return;
     final prefs = await SharedPreferences.getInstance();
     final key = '$_keyCatCorrectPrefix$categoryKey';
@@ -250,8 +262,12 @@ class PrefsHelper {
     try {
       final decoded = jsonDecode(raw);
       if (decoded is! Map<String, dynamic>) return {};
-      return decoded.map((k, v) => MapEntry(k, v is int ? v : int.tryParse('$v') ?? 0));
-    } catch (_) { return {}; }
+      return decoded.map(
+        (k, v) => MapEntry(k, v is int ? v : int.tryParse('$v') ?? 0),
+      );
+    } catch (_) {
+      return {};
+    }
   }
 
   static Future<void> _saveDailyMap(String key, Map<String, int> data) async {
@@ -316,6 +332,9 @@ class PrefsHelper {
   static const String _keyDailyGoal = 'daily_goal';
   static const String _keyNotifEnabled = 'notif_enabled';
   static const String _keyNotifHour = 'notif_hour';
+  static const String _keyShowAnswerExplanation = 'show_answer_explanation';
+  static const String _keyExplanationModeNoticeShown =
+      'explanation_mode_notice_shown_v1';
 
   static Future<int> getDailyGoal() async {
     final prefs = await SharedPreferences.getInstance();
@@ -345,6 +364,26 @@ class PrefsHelper {
   static Future<void> setNotifHour(int hour) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyNotifHour, hour);
+  }
+
+  static Future<bool> getShowAnswerExplanation() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyShowAnswerExplanation) ?? true;
+  }
+
+  static Future<void> setShowAnswerExplanation(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyShowAnswerExplanation, enabled);
+  }
+
+  static Future<bool> isExplanationModeNoticeShown() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyExplanationModeNoticeShown) ?? false;
+  }
+
+  static Future<void> markExplanationModeNoticeShown() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyExplanationModeNoticeShown, true);
   }
 
   // ---- Exam Date ----
